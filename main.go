@@ -28,6 +28,7 @@ var (
 		ListenAddress:  ":9131", // Reserved and publicly announced at https://github.com/prometheus/prometheus/wiki/Default-port-allocations
 		Path:           "/metrics",
 		VarnishstatExe: "varnishstat",
+		StartupDelay:   0,
 		Params:         &varnishstatParams{},
 	}
 	logger *log.Logger
@@ -46,6 +47,7 @@ type startParams struct {
 	Test          bool
 	Raw           bool
 	WithGoMetrics bool
+	StartupDelay  int
 }
 
 type varnishstatParams struct {
@@ -92,6 +94,9 @@ func init() {
 	flag.BoolVar(&StartParams.Raw, "raw", StartParams.Test, "Raw stdout logging without timestamps.")
 	flag.BoolVar(&StartParams.WithGoMetrics, "with-go-metrics", StartParams.WithGoMetrics, "Export go runtime and http handler metrics")
 
+	// init
+	flag.IntVar(&StartParams.StartupDelay, "startup-delay", StartParams.StartupDelay, "Startup delay sec.")
+
 	flag.Parse()
 
 	if version {
@@ -118,6 +123,10 @@ func init() {
 }
 
 func main() {
+	if StartParams.StartupDelay > 0 {
+		time.Sleep(time.Duration(StartParams.StartupDelay) * time.Second)
+	}
+
 	if b, err := json.MarshalIndent(StartParams, "", "  "); err == nil {
 		logInfo("%s %s %s", ApplicationName, getVersion(false), b)
 	} else {
